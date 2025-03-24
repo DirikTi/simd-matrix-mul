@@ -53,10 +53,6 @@ void *task(void *arg)
         pthread_mutex_unlock(&lock);
 
         int32_t index_B_matrix_row = 0;
-
-        for (int i = 0; i < MATRIX_SIZE; i += 16) {
-            __builtin_prefetch(A[index_A_matrix] + i, 0, 3);
-        }
         
         int32x4_t result_vec = vdupq_n_s32(0);
 
@@ -109,7 +105,7 @@ void allocate_hugepages()
         exit(EXIT_FAILURE);
     }
 
-    madvise(C, MATRIX_SIZE * MATRIX_SIZE * sizeof(int), MADV_HUGEPAGE);
+    madvise(C, MATRIX_SIZE * MATRIX_SIZE * sizeof(int), MADV_WILLNEED);
 }
 
 int main()
@@ -123,7 +119,9 @@ int main()
     int cpu_ids[CORE_COUNT];
     pthread_t threads[CORE_COUNT];
     
-    allocate_hugepages();
+    // allocate_hugepages();
+
+    C = (int *) malloc(MATRIX_SIZE * MATRIX_SIZE * sizeof(int));
 
     int cpu_index = 0;
     while (cpu_index < CORE_COUNT) {
@@ -174,7 +172,8 @@ int main()
 void cleanup()
 {
     pthread_mutex_destroy(&lock);
-    msync(C, MATRIX_SIZE * MATRIX_SIZE * sizeof(int), MS_SYNC);
-    munmap(C, MATRIX_SIZE * MATRIX_SIZE * sizeof(int));
+    // msync(C, MATRIX_SIZE * MATRIX_SIZE * sizeof(int), MS_SYNC);
+    // munmap(C, MATRIX_SIZE * MATRIX_SIZE * sizeof(int));
+    free(C);
     close(fd);
 }
